@@ -70,10 +70,10 @@ detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(predictor_path)
 
 #To make sure the mouth is inside the bounding box
-PIXEL_MARGIN = 20
+PIXEL_MARGIN = 5
 csv_lines = []
 
-for f in glob.glob(os.path.join(faces_folder_path, "*.jpg")):
+for f in glob.glob(os.path.join(faces_folder_path, "*.pgm")):
     # print("Processing file: {}".format(f))
     img = mpimg.imread(f)
 
