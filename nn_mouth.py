@@ -5,7 +5,6 @@ from keras.datasets import mnist
 from sklearn.model_selection import train_test_split
 
 
-
 def check_predictions(predictions, indices_test):
 
 	import matplotlib.pyplot as plt
@@ -13,7 +12,7 @@ def check_predictions(predictions, indices_test):
 
 	with open("box_coordinates.csv") as f:
 	    photos = f.readlines()
-	    
+
 	for i,index in enumerate(indices_test):
 	    title = photos[index].split(',')[0]
 	    img = mpimg.imread("data/BioID/"+title)
@@ -67,7 +66,3 @@ np.set_printoptions(threshold=np.nan)
 print(model.predict(X_test, batch_size = 16, verbose=1))
 
 check_predictions(predictions, indices_test)
-
-
-
-
