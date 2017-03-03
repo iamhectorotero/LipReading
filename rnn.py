@@ -9,7 +9,7 @@ from keras.models import Sequential, Model
 from keras.layers.core import Dense
 from keras.layers.recurrent import LSTM, SimpleRNN
 from keras.layers import Input
-from keras.layers.convolutional import Convolution2D,Convolution3D
+from keras.layers.convolutional import Convolution2D
 
 import tflearn
 
