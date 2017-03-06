@@ -81,7 +81,7 @@ def process_images(in_fold, out_fold, s, m):
     if not os.path.exists(out_fold):
         os.makedirs(out_fold)
     for dr in os.listdir(in_fold):
-        print ">> Processing images in", dr, "folder"
+        print(">> Processing images in", dr, "folder")
         if not os.path.exists(out_fold + '/' + dr):
             os.makedirs(out_fold + '/' + dr)
         for f in os.listdir(in_fold + '/' + dr):
@@ -103,11 +103,11 @@ def main(argv):
     try:
       opts, args = getopt.getopt(argv,"hi:o:s:m:")
     except getopt.GetoptError:
-      print 'test.py -i <inputfile> -o <outputfile>'
+      print('test.py -i <inputfile> -o <outputfile>')
       sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'test.py -i <input_folder> -o <output_folder> -s <size> -m <crop/resize>'
+            print('test.py -i <input_folder> -o <output_folder> -s <size> -m <crop/resize>')
             sys.exit()
         elif opt in ("-i"):
             inputfile = arg
@@ -119,8 +119,8 @@ def main(argv):
             if arg in ['resize', 'crop']:
                 mode = arg
             else:
-                print 'Invalid mode of operation'
-                print 'test.py -i <input_folder> -o <output_folder> -s <size> -m <crop/resize>'
+                print('Invalid mode of operation')
+                print('test.py -i <input_folder> -o <output_folder> -s <size> -m <crop/resize>')
                 sys.exit()
     process_images(input_folder, output_folder, size, mode)
 

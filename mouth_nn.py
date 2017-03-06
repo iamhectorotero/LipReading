@@ -60,7 +60,6 @@ model = Model(image, z)
 
 model.compile(loss='mse', optimizer='rmsprop')
 
-
 model.fit(X_train, y_train, nb_epoch=10, batch_size=20, verbose=1)
 np.set_printoptions(threshold=np.nan)
 print(model.predict(X_test, batch_size = 16, verbose=1))
