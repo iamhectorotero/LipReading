@@ -4,57 +4,87 @@ from sklearn.model_selection import train_test_split
 from keras.models import Sequential, Model
 from keras.layers.recurrent import LSTM, SimpleRNN
 from keras.layers.core import Dense, Dropout
-from keras.layers import Convolution1D, MaxPooling1D, Flatten
+from keras.layers import Convolution1D, MaxPooling1D, Flatten, Convolution2D, Input, MaxPooling2D, Activation, Reshape
+from keras.regularizers import l2, activity_l2
+from keras.regularizers import l1, activity_l1
+from keras.layers.noise import GaussianNoise
+
 from keras.preprocessing import sequence
 import numpy as np
 from math import sqrt
 
-d = {"Excuse":0, "Goodby": 1, "Hello": 2, "How": 3, "Left": 4, "Nice": 5, "Right": 6, "Seeyou": 7, "Sorry": 8, "Thank": 9, "Thanks":9, "Time" : 10, "Welcome": 11 }
+from scipy.io.wavfile import read as wavread
 
-pattern = re.compile(".*/([A-z]*).*")
+def load_data():
+    pattern = re.compile(".*/([A-z]*).*")
+    d = {"Excuse":0, "Goodby": 1, "Hello": 2, "How": 3, "Nice": 4, "Seeyou": 5, "Sorry": 6, "Thank": 7, "Thanks":8, "Time" : 9, "Welcome": 10}
 
-X = []
-y = []
+    X = []
+    y = []
 
-for audio in glob.glob("videos/*/*/*.flac"):
-    data, _ = sf.read(audio)
-    data = np.asarray(data).reshape(-1, 1)
-    X.append(data)
-    cl = [0]*12
-    cl[d[pattern.match(audio).groups()[0]]] = 1
-    y.append(cl)
+    audio_files = glob.glob("videos/*/*/*.wav")
+    for i, audio in enumerate(audio_files):
+        print("{0:.2f}".format(float(i)/len(audio_files)), end="\r")
+
+        phrase = pattern.match(audio).groups()[0]
+
+        if phrase != "Left" and phrase != "Right":
+            # data, _ = sf.read(audio)
+
+            [samplerate, data] = wavread(audio)
+            data = np.asarray(data[:3200]).reshape(3200, 1)
+
+            X.append(data)
+            cl = [0]*11
+            cl[d[phrase]] = 1
+            y.append(cl)
+
+            noise = np.random.normal(0,1,3200)
+
+            X.append(data*noise)
+            y.append(cl)
+
+    return np.asarray(X), np.asarray(y)
+
+def create_model():
+    model = Sequential()
+    model.add(SimpleRNN(32, activation="relu",  W_regularizer=l1(0.01), return_sequences=True, input_shape=(1, 3200)))
+    model.add(Dropout(0.4))
+    model.add(SimpleRNN(32,  activation="relu"))
+    model.add(Dense(11, activation='softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=["categorical_accuracy"])
+    return model
+
+def train_and_evaluate(model, X_train, y_train, X_test, y_test):
+    model.fit(X_train, y_train, nb_epoch=25, batch_size=20, verbose=2)
+    results = model.evaluate(X_test, y_test, batch_size=20, verbose=1)
+    print(results)
+
+if __name__ == '__main__':
+
+    n_folds = 9
+    from sklearn.model_selection import KFold
+
+    skf = KFold(n_splits=n_folds)
+
+    print("Loading data...")
+    X, y = load_data()
+
+    print("Splitting data...")
+    for i, (train, test) in enumerate(skf.split(X, y)):
+        print("Running Fold "+str(1+i)+"/"+str(n_folds))
+        model = create_model()
+        model.summary()
+        train_and_evaluate(model, X[train], y[train], X[test], y[test])
 
 
-
-
-indices = range(len(X))
-X_train, X_test, y_train, y_test, indices_train, indices_test = train_test_split(X, y, indices, test_size=0.15, random_state=37)
-
-X_train = np.asarray(X_train)
-X_test = np.asarray(X_test)
-
-model = Sequential()
-model.add(Convolution1D(32, 3, border_mode='same', input_shape=(200000, 1)))
-model.add(MaxPooling1D(4, 4, border_mode='same'))
-model.add(Convolution1D(16, 3, border_mode='same'))
-model.add(MaxPooling1D(4, 4, border_mode='same'))
-model.add(Convolution1D(4, 3, border_mode='same'))
-model.add(MaxPooling1D(4, 4, border_mode='same'))
-model.add(Convolution1D(1, 3, border_mode='same'))
-model.add(MaxPooling1D(4, 4, border_mode='same'))
-model.add(Flatten())
-
+# model.add(Reshape((38400, 1), input_shape=(1, 38400)))
+# model.add(Convolution1D(32, 2))
+# model.add(Activation('relu'))
+# model.add(MaxPooling1D(8))
+# model.add(Convolution1D(16, 2))
+# model.add(Activation('relu'))
+# model.add(MaxPooling1D(8))
+# model.add(Flatten())
 # model.add(Dropout(0.2))
-# model.add(SimpleRNN(100))
-# model.add(Dropout(0.2))
-model.add(Dense(12, activation='softmax'))
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-model.summary()
-
-print("Padding sequences...")
-X_train = sequence.pad_sequences(X_train, padding='post', maxlen=200000)
-X_test = sequence.pad_sequences(X_test, padding='post', maxlen=200000)
-
-print("Training...")
-model.fit(X_train, y_train, nb_epoch=10, batch_size=20, verbose=1)
+# model.add(Dense(11, activation='softmax'))
