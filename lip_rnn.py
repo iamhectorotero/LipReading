@@ -41,7 +41,7 @@ def generate_video_array():
             classes = [0]*12
             for file in glob.glob(folder+"/*.bmp")[:10]:
                 img = mpimg.imread(file)
-                video.append(np.reshape(rgb2gray(img), (414720)))
+                video.append(np.reshape(rgb2gray(img), (414720, 3)))
 
             if video:
                 classes[d[folder.split("/")[-1][:-1]]] = 1

@@ -1,8 +1,11 @@
 from scipy import ndimage
 import glob
 import numpy as np
-from keras.datasets import mnist
 from sklearn.model_selection import train_test_split
+from PIL import Image
+from random import shuffle
+from keras.callbacks import EarlyStopping
+
 
 
 def check_predictions(predictions, indices_test):
@@ -22,19 +25,48 @@ def check_predictions(predictions, indices_test):
 	    plt.plot(x_coords, y_coords)
 	    plt.show()
 
+from keras.models import Sequential, Model
+from keras.layers import Input, Convolution2D, Flatten, MaxPooling2D
+from keras.layers.core import Dense, Activation
+
+print("Compiling model...")
+
+model = Sequential()
+model.add(Convolution2D(32, 3, 3, border_mode='same', input_shape=(288, 360, 3)))
+model.add(MaxPooling2D((8,8)))
+model.add(Convolution2D(16, 3, 3, border_mode='same'))
+model.add(MaxPooling2D((4,4)))
+model.add(Convolution2D(32, 3, 3, border_mode='same'))
+model.add(MaxPooling2D((2,2)))
+model.add(Flatten())
+model.add(Dense(4))
+model.summary()
+
+model.compile(loss='mse', optimizer='rmsprop')
 
 X = []
 y = []
 
-with open("box_coordinates.csv") as f:
-	for line in f:
-		data = line.split(",")
-		y.append(np.asarray([int(x) for x in data[1:]]))
-		image = np.memmap("data/BioID/"+data[0], dtype=np.uint8, shape=(384, 286, 1))
-		X.append(image / 255.0)
+with open("dlib/box_coordinates.csv") as f:
+    c = 0
+    lines = f.readlines()
+    shuffle(lines)
+    for line in lines[:20000]:
+        c += 1
+        print(" ", "{0:.2f}".format(100*float(c)/3000), end="\r")
+        data = line.split(",")
 
+        if not "Left" in data[0] and not "Right" in data[0]:
+            y.append(np.asarray([float(x) for x in data[1:]]))
+            img = Image.open("videos/"+data[0])
+            img = img.resize((360, 288), Image.ANTIALIAS)
+            img = np.asarray(img)
+            X.append(img)
+            # print(data, "HWAT")
+
+print(len(X))
 indices = range(len(X))
-
+print("Splitting data..")
 X_train, X_test, y_train, y_test, indices_train, indices_test = train_test_split(X, y, indices, test_size=0.15, random_state=37)
 
 X_train = np.asarray(X_train)
@@ -43,25 +75,12 @@ y_train = np.asarray(y_train)
 X_test = np.asarray(X_test)
 y_test = np.asarray(y_test)
 
-print(X_train.shape)
-print(y_train.shape)
+print("Fitting the data...")
 
-print(X_test.shape)
-print(y_test.shape)
+early_stopping = EarlyStopping(monitor='val_loss', patience=2)
 
-from keras.models import Sequential, Model
-from keras.layers import Input, Convolution2D, Flatten
-from keras.layers.core import Dense, Activation
-
-image = Input(shape=(384, 286, 1))
-y = Convolution2D(32, 3, 3, border_mode='same')(image)
-z = Dense(8)(Flatten()(y))
-model = Model(image, z)
-
-model.compile(loss='mse', optimizer='rmsprop')
-
-model.fit(X_train, y_train, nb_epoch=10, batch_size=20, verbose=1)
+model.fit(X_train, y_train, nb_epoch=10, batch_size=20, verbose=1, callbacks=[early_stopping], validation_split=0.1)
 np.set_printoptions(threshold=np.nan)
-print(model.predict(X_test, batch_size = 16, verbose=1))
+pred = model.predict(X_test, batch_size = 16, verbose=1)
 
-check_predictions(predictions, indices_test)
+check_predictions(pred, indices_test)
