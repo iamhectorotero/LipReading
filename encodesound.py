@@ -27,14 +27,14 @@ def read_audio():
         B, A = signal.butter(N, Wn, output='ba')
         smooth_data = signal.filtfilt(B,A, data)
 
-        # smooth_data = pd.rolling_mean(data, 10)
-        # plt.plot(data, 'r')
+        smooth_data = pd.rolling_mean(data, 10)
+        plt.plot(data, 'b')
 
-        # plt.plot(smooth_data, 'b')
+        plt.plot(smooth_data, 'r')
         # print(audio[:-4]+"_smooth.wav")
-        sf.write(audio[:-4]+"_smooth.wav", smooth_data, samplerate)
+        # sf.write(audio[:-4]+"_smooth.wav", smooth_data, samplerate)
         # plt.savefig(audio[:-3]+"png")
-        # plt.show()
+        plt.show()
         # plt.clf()
         l.append(data.shape[0])
 

@@ -8,6 +8,7 @@ from keras.layers import Convolution1D, MaxPooling1D, Flatten, Convolution2D, In
 from keras.regularizers import l2, activity_l2
 from keras.regularizers import l1, activity_l1
 
+from keras.layers import Convolution3D, MaxPooling3D
 import matplotlib.image as mpimg
 from keras.callbacks import EarlyStopping
 
@@ -21,9 +22,9 @@ from keras.applications.music_tagger_crnn import preprocess_input, decode_predic
 
 from keras.applications.vgg16 import VGG16
 
-vgg16 = VGG16(include_top=False, input_shape=(576, 720, 3))
-autoencoder = load_model('saved_autoencoder/autoencodermodel')
-autoencoder.load_weights('saved_autoencoder/autoencoder_weights.h5')
+# vgg16 = VGG16(include_top=False, input_shape=(576, 720, 3))
+# autoencoder = load_model('saved_autoencoder/autoencodermodel')
+# autoencoder.load_weights('saved_autoencoder/autoencoder_weights.h5')
 
 AUDIO_SIZE = 44000
 
@@ -32,23 +33,23 @@ def rgb2gray(rgb):
 
 def get_class(filename):
     pattern = re.compile(".*/([A-z]*).*")
-    d = {"Excuse":0, "Goodby": 1, "Hello": 2, "How": 3, "Nice": 4, "Seeyou": 5, "Sorry": 6, "Thank": 7, "Thanks":8, "Time" : 9, "Welcome": 10}
+    d = {"Excuse":0, "Goodby": 1, "Hello": 2, "How": 3, "Nice": 4, "Seeyou": 5, "Sorry": 6, "Thank": 7, "Thanks":7, "Time" : 8, "Welcome": 9}
 
     phrase = pattern.match(filename).groups()[0]
 
-    cl = [0]*11
+    cl = [0]*10
     cl[d[phrase]] = 1
 
     return cl
 
 def get_image_class(filename):
     pattern = re.compile(".*\/.*\/([A-z]*)[0-9]*\/[0-9]*.bmp")
-    d = {"Excuse":0, "Goodby": 1, "Hello": 2, "How": 3, "Nice": 4, "Seeyou": 5, "Sorry": 6, "Thank": 7, "Thanks":8, "Time" : 9, "Welcome": 10}
+    d = {"Excuse":0, "Goodby": 1, "Hello": 2, "How": 3, "Nice": 4, "Seeyou": 5, "Sorry": 6, "Thank": 7, "Thanks":7, "Time" : 8, "Welcome": 9}
     # print(filename)
 
     phrase = pattern.match(filename).groups()[0]
 
-    cl = [0]*11
+    cl = [0]*10
     cl[d[phrase]] = 1
 
     return cl
@@ -62,14 +63,13 @@ def pad_sound(data, length):
     data = np.append(data, np.asarray(aux))
     return data
 
-def pad_video(video, max_length):
+def pad_video(video, max_length=20):
 
-    if len(video) > max_length:
+    if len(video) >= max_length:
         return video[:max_length]
 
     while len(video) != max_length:
-        image = np.asarray([0]*1244160)
-        # print(image.shape)
+        image = np.asarray([[[0]*3]*720]*576)
         video.append(image)
 
     return video
@@ -112,13 +112,13 @@ def load_image_features():
 
             if crop_lips:
                 img = crop_lips(img)
-            features = vgg16.predict(np.array([img]))
+            features = autoencoder.predict(np.array([img]))
             # print(features.flatten().shape)
             video.append(features.flatten())
 
         if video:
-            if len(video) != max_length:
-                video = pad_video_features(video, max_length)
+            if len(video) != 20:
+                video = pad_video_features(video)
 
             video = np.asarray(video)
 
@@ -163,29 +163,22 @@ def load_sound_data():
 
     return np.asarray(X), np.asarray(y)
 
-def load_lip_images(batch_size, max_length, crop_lips=False):
+def load_lip_images(batch_size=4):
     X_train = []
     y_train = []
 
     folders = glob.glob("videos/P00*/*")
 
     while True:
-        for folder in folders:
+        for i, folder in enumerate(folders):
+            print("Folder ", i, end="\r")
             video = []
-            for file in glob.glob(folder+"/*.bmp"):
+            for file in glob.glob(folder+"/*.bmp")[:20]:
                 img = mpimg.imread(file)
-
-                if crop_lips:
-                    img = crop_lips(img)
-
-                img = img.reshape(-1,)
-                # print(img.shape)
                 video.append(img)
 
             if video:
-                if len(video) != max_length:
-                    video = pad_video(video, max_length)
-
+                video = pad_video(video)
                 video = np.asarray(video)
 
                 # print(video.shape)
@@ -207,7 +200,7 @@ def create_model_mtc(trainable=False):
 
     model = Sequential()
     model.add(mtc)
-    model.add(Dense(11, activation='softmax', input_shape=(1, 32)))
+    model.add(Dense(10, activation='softmax', input_shape=(1, 32)))
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=["categorical_accuracy"])
     return model
@@ -226,7 +219,15 @@ def create_lip_conv():
 
     model = Sequential()
 
-    model.add(SimpleRNN(11, activation='softmax', input_shape=(30, 1244160)))
+    model.add(MaxPooling3D((1,2,2), input_shape=(20, 576, 720, 3)))
+    model.add(Convolution3D(32, 2, 2, 2, activation='relu'))
+    model.add(MaxPooling3D((2, 2, 2)))
+    model.add(Convolution3D(16, 2, 2, 2, activation='relu'))
+    model.add(MaxPooling3D((2, 2, 3)))
+    model.add(Convolution3D(8, 2, 2, 2, activation='relu'))
+    model.add(MaxPooling3D((2, 2, 3)))
+    model.add(Flatten())
+    model.add(Dense(10, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=["categorical_accuracy"])
     return model
 
@@ -244,16 +245,19 @@ if __name__ == '__main__':
 
     skf = KFold(n_splits=n_folds)
 
-    print("Loading data...")
-    X, y = load_image_features()
+    # X, y = load_lip()
 
     # sequence.pad_sequences(X, padding="post", maxlen=10000, truncating="post")
 
-    print("Splitting data...")
-    for i, (train, test) in enumerate(skf.split(X, y)):
-        print("Running Fold "+str(1+i)+"/"+str(n_folds))
-        model = create_lip_conv()
-        model.summary()
-        train_and_evaluate(model, X[train], y[train], X[test], y[test])
-    # model.fit_generator(load_lip_images(1, 30), samples_per_epoch=800, nb_epoch=10)
-    # model.evaluate_generator(load_lip_images(5, 30), 200)
+    # print("Splitting data...")
+    # for i, (train, test) in enumerate(skf.split(X, y)):
+
+        # print("Running Fold "+str(1+i)+"/"+str(n_folds))
+    print("Creating Model...")
+    model = create_lip_conv()
+    model.summary()
+    print("Loading data...")
+
+    # train_and_evaluate(model, X[train], y[train], X[test], y[test])
+    model.fit_generator(load_lip_images(), samples_per_epoch = 500, nb_epoch = 10, verbose=1)
+    model.evaluate_generator(load_lip_images(), 200)
