@@ -129,7 +129,7 @@ detail and the pooling layers help at reducing further the dimensionality of the
 image. Finally, the dense layer with a linear activation produces an unbounded
 value, ideal for the regression task.\\
 
-\includegraphics[width=0.8\linewidth,keepaspectratio]{convolution.png}
+\noindent\includegraphics[width=\linewidth,keepaspectratio]{convolution.png}
 
 The results obtained are really accurate. After 25 training epochs and using 80\%
 of the data for training and the rest for test, we obtain a Mean Squared Error of
@@ -137,7 +137,7 @@ of the data for training and the rest for test, we obtain a Mean Squared Error o
 for the coordinates of the box and the labeled data differ in only 9 pixels, which
 for a 576x720 images represents less than 2\% of the width and height.\\
 
-\includegraphics[width=0.8\linewidth, keepaspectratio]{boxes.png}
+\noindent\includegraphics[width=\linewidth, keepaspectratio]{boxes.png}
 
 Some of the reasons behind this accurate prediction are the availability of a
 large set of images to work with and the fact that the mouths are centered along
@@ -162,7 +162,7 @@ to include dropout layers after each of the recurrent ones and try different
 types of regularization (L2 with a value of 0.01 providing the best
 performance).\\
 
-\includegraphics[width=0.8\linewidth, keepaspectratio]{rnn.png}
+\noindent\includegraphics[width=\linewidth, keepaspectratio]{rnn.png}
 
 
 The results obtained barely improved a random classification of the data with a
