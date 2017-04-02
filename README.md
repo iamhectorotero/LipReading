@@ -1,5 +1,7 @@
 # LipReading
 
+Neural Network project to caption videos obtained from OuluVS database. 
+
 # File Description
 
 * 3d_convolution.py: Predict video class using 3D Convolution directly on the videos.
