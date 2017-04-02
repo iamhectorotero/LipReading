@@ -10,13 +10,17 @@ import pandas as pd
 from scipy.signal import butter, lfilter, freqz
 
 FILE_FORMAT = "wav"
+VIDEOS_LIST = "videos/P*/*/*.avi"
+
 def extract_audio():
-    for video in glob.glob("videos/P*/*/*.avi"):
+    """Extract the audio in mono format from the videos"""
+
+    for video in glob.glob(VIDEOS_LIST):
         f = video[:-3] + FILE_FORMAT
-        # print(f)
         os.system("ffmpeg -v 0 -y -i "+video+" -f "+FILE_FORMAT+" -ar 10000 -vn "+f)
 
 def read_audio():
+    """Read the audio files extracted and plot them"""
     l = []
     for audio in glob.glob("videos/P*/*/*."+FILE_FORMAT):
         data, samplerate = sf.read(audio)
@@ -44,7 +48,4 @@ def read_audio():
     for x in l:
         s += sqrt((x - av)**2)
 
-    print(max(l), min(l), av, s/len(l))
-
-# extract_audio()
-read_audio()
+    # print(max(l), min(l), av, s/len(l))

@@ -6,8 +6,6 @@ from PIL import Image
 from random import shuffle
 from keras.callbacks import EarlyStopping
 
-
-
 def check_predictions(predictions, indices_test):
 
 	import matplotlib.pyplot as plt

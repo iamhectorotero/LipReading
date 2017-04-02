@@ -16,15 +16,11 @@ predictor = dlib.shape_predictor(predictor_path)
 
 csv_lines = []
 
-# print(PATH)
 for f in glob.glob(PATH):
     # print("Processing file: {}".format(f[10:]))
-    # continue
     img = mpimg.imread(f)
 
-    # Ask the detector to find the bounding boxes of each face. The 1 in the
-    # second argument indicates that we should upsample the image 1 time. This
-    # will make everything bigger and allow us to detect more faces.
+    # Ask the detector to find the bounding boxes of each face
     dets = detector(img, 1)
 
     #If more than one face is detected, we skip the image
@@ -32,21 +28,23 @@ for f in glob.glob(PATH):
     	continue
 
     for k, d in enumerate(dets):
-        # Get the landmarks/parts for the face in box d.
+        # Get the landmarks for the face in box d.
         shape = predictor(img, d)
 
        	#For the points that form each landmark, extract the coordinates
-       	#of the ones that belong to the mouth (last 20)
-        #Different naming convention for the image and matplotlib
+       	#of the ones that belong to the mouth (last 20).
+        #Note: We switch x and y because of the different naming convention for
+        #the landmarks and matplotlib
         y_coords = [point.x for point in shape.parts()[-20:]]
         x_coords = [point.y for point in shape.parts()[-20:]]
 
         #Construct a box out of the the extreme points of the mouth
         #x, y coordinates of each corner
         min_y = min(y_coords)
+        max_y = max(y_coords)
+
         min_x = min(x_coords)
         max_x = max(x_coords)
-        max_y = max(y_coords)
 
         height = (max_x - min_x) * 2.1
         width = (max_y - min_y) * 1.6
@@ -65,6 +63,7 @@ for f in glob.glob(PATH):
         csv_lines.append(f[10:]+","+",".join(corners)+"\n")
 
 
+#Write the lines to a CSV file
 with open("box_coordinates.csv", "w+") as csv:
 	for line in csv_lines:
 		csv.write(line)
